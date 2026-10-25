@@ -1,0 +1,1767 @@
+<!DOCTYPE html>
+<html lang="ca" class="h-full bg-slate-900 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hematopoïesi Interactiva - Dashboard Educatiu</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            mieloide: '#3b82f6',
+            limfoide: '#8b5cf6',
+            eritroide: '#ef4444',
+            megacario: '#f59e0b',
+            granulo: '#10b981',
+            agranulo: '#06b6d4',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Transicions i glassmorphism */
+    .glass-panel {
+      background: rgba(30, 41, 59, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.2s ease-in-out;
+    }
+    .glass-card:hover {
+      border-color: rgba(99, 102, 241, 0.4);
+      transform: translateY(-2px);
+    }
+    /* Smooth Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    /* Pulse glow effect for selected nodes */
+    .node-selected {
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.6);
+      border-color: #6366f1 !important;
+    }
+    /* Cell animation pulse */
+    @keyframes pulse-soft {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+    .animate-pulse-soft {
+      animation: pulse-soft 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="h-full flex flex-col font-sans overflow-x-hidden antialiased bg-slate-950 text-slate-100">
+
+  <!-- HEADER DE LA PLATAFORMA -->
+  <header class="glass-panel sticky top-0 z-40 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md px-4 lg:px-8 py-3">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-gradient-to-br from-red-500 to-indigo-600 rounded-xl shadow-lg shadow-red-500/20">
+          <i data-lucide="dna" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold bg-gradient-to-r from-red-400 via-purple-300 to-indigo-400 bg-clip-text text-transparent">
+            Hematopoïesi Interactiva
+          </h1>
+          <p class="text-xs text-slate-400">Plataforma d'Estudi de la Formació de Cèl·lules Sanguínies</p>
+        </div>
+      </div>
+
+      <!-- NAVEGACIÓ PRINCIPAL PER PESTANYES -->
+      <nav class="flex flex-wrap items-center gap-1.5 bg-slate-950/60 p-1.5 rounded-xl border border-slate-800 text-xs sm:text-sm font-medium">
+        <button onclick="switchTab('tree')" id="tab-btn-tree" class="tab-btn px-3.5 py-1.5 rounded-lg text-indigo-400 bg-indigo-950/60 border border-indigo-800/50 transition-all flex items-center gap-1.5">
+          <i data-lucide="git-fork" class="w-4 h-4"></i> Arbre Hematopoètic
+        </button>
+        <button onclick="switchTab('simulator')" id="tab-btn-simulator" class="tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5">
+          <i data-lucide="play-circle" class="w-4 h-4"></i> Simulador Diferenciació
+        </button>
+        <button onclick="switchTab('lab')" id="tab-btn-lab" class="tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5">
+          <i data-lucide="flask-conical" class="w-4 h-4"></i> Lab Citoquines & Frotis
+        </button>
+        <button onclick="switchTab('matrix')" id="tab-btn-matrix" class="tab-btn px-3.5 py-1.5 rounded-lg text-slate-400 hover:text-slate-200 transition-all flex items-center gap-1.5">
+          <i data-lucide="table" class="w-4 h-4"></i> Taula Comparativa
+        </button>
+        <button onclick="openPublishModal()" class="px-3.5 py-1.5 rounded-lg bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 transition-all flex items-center gap-1.5 ml-1">
+          <i data-lucide="share-2" class="w-4 h-4"></i> Com Publicar de De franc
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- CONTINGUT PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6">
+
+    <!-- SECCIÓ 1: ARBRE HEMATOPOÈTIC INTERACTIU -->
+    <section id="section-tree" class="tab-section flex flex-col gap-6">
+      
+      <!-- FILTRES DE LÍNIES CEL·LULARS -->
+      <div class="glass-panel p-4 rounded-2xl flex flex-wrap items-center justify-between gap-4 border border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="filter" class="w-4 h-4 text-slate-400"></i>
+          <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Filtra per Línia:</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="filterLineage('all')" class="lineage-btn active border border-slate-700 bg-slate-800 px-3 py-1 rounded-lg text-xs font-medium text-slate-200">Totes les Línies</button>
+          <button onclick="filterLineage('eritropoiesi')" class="lineage-btn border border-red-900/50 bg-red-950/30 text-red-400 px-3 py-1 rounded-lg text-xs font-medium hover:bg-red-900/40">Eritropoïesi (Eritròcits)</button>
+          <button onclick="filterLineage('trombopoiesi')" class="lineage-btn border border-amber-900/50 bg-amber-950/30 text-amber-400 px-3 py-1 rounded-lg text-xs font-medium hover:bg-amber-900/40">Trombopoïesi (Plaquetes)</button>
+          <button onclick="filterLineage('granulocits')" class="lineage-btn border border-emerald-900/50 bg-emerald-950/30 text-emerald-400 px-3 py-1 rounded-lg text-xs font-medium hover:bg-emerald-900/40">Granulòcits (Neut, Eos, Baso)</button>
+          <button onclick="filterLineage('agranulocits')" class="lineage-btn border border-cyan-900/50 bg-cyan-950/30 text-cyan-400 px-3 py-1 rounded-lg text-xs font-medium hover:bg-cyan-900/40">Agranulòcits (Monòcits, Limfòcits)</button>
+        </div>
+      </div>
+
+      <!-- LLEGENDA RÀPIDA -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+        <div class="glass-panel p-2.5 rounded-xl flex items-center gap-2 border-l-4 border-l-purple-500">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+          <span class="text-slate-300">Cèl·lula Mare Pluripotencial</span>
+        </div>
+        <div class="glass-panel p-2.5 rounded-xl flex items-center gap-2 border-l-4 border-l-blue-500">
+          <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+          <span class="text-slate-300">Línia Mieloide</span>
+        </div>
+        <div class="glass-panel p-2.5 rounded-xl flex items-center gap-2 border-l-4 border-l-indigo-500">
+          <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+          <span class="text-slate-300">Línia Limfoide</span>
+        </div>
+        <div class="glass-panel p-2.5 rounded-xl flex items-center gap-2 border-l-4 border-l-emerald-500">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          <span class="text-slate-300">Cèl·lules Sanguínies Matures</span>
+        </div>
+      </div>
+
+      <!-- CONTENIDOR DE L'ARBRE (GRID HIERÀRQUIC) -->
+      <div class="relative overflow-x-auto p-4 sm:p-6 glass-panel rounded-2xl border border-slate-800 min-w-[900px]">
+        <div id="tree-container" class="flex flex-col gap-10">
+          <!-- Es generarà dinàmicament per JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- SECCIÓ 2: SIMULADOR DE DIFERENCIACIÓ PAS A PAS -->
+    <section id="section-simulator" class="tab-section hidden flex-col gap-6">
+      <div class="glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h2 class="text-lg font-bold text-indigo-300 flex items-center gap-2">
+            <i data-lucide="git-commit" class="w-5 h-5"></i> Simulador de Maturació Cel·lular Pas a Pas
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Selecciona la cèl·lula diana madura per seguir la seua transformació morfològica des de la cèl·lula mare (HSC).</p>
+        </div>
+
+        <!-- SELECTOR DE CÈL·LULA DIANA -->
+        <div class="flex items-center gap-3">
+          <label class="text-xs font-semibold text-slate-300">Cèl·lula Final Target:</label>
+          <select id="sim-target-select" onchange="startDifferentiationSimulation(this.value)" class="bg-slate-950 border border-indigo-700/60 rounded-xl px-4 py-2 text-sm text-indigo-200 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <option value="eritrocit">Eritròcit (Eritropoïesi)</option>
+            <option value="plaqueta">Plaqueta / Megacariòcit (Trombopoïesi)</option>
+            <option value="neutrofil">Neutròfil (Granulopoïesi)</option>
+            <option value="eosinofil">Eosinòfil (Granulopoïesi)</option>
+            <option value="basofil">Basòfil (Granulopoïesi)</option>
+            <option value="monocit">Monòcit / Macròfag (Monopoïesi)</option>
+            <option value="limfocit_b">Limfòcit B (Limfopoïesi)</option>
+            <option value="limfocit_t">Limfòcit T (Limfopoïesi)</option>
+            <option value="limfocit_nk">Cèl·lula NK (Limfopoïesi)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- PANEL DE CONTROL DEL SIMULADOR -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- VISUALITZADOR CEL·LULAR CENTRAL -->
+        <div class="lg:col-span-7 glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-between min-h-[420px] relative">
+          
+          <!-- Línia de progrés de passos -->
+          <div id="sim-timeline" class="w-full flex items-center justify-between mb-6 px-4">
+            <!-- Renderitzat per JS -->
+          </div>
+
+          <!-- Targeta de Visualització de la Cèl·lula actual -->
+          <div class="flex flex-col items-center text-center my-4 animate-pulse-soft">
+            <div id="sim-cell-svg-container" class="w-36 h-36 rounded-full bg-slate-950/80 p-3 border-2 border-indigo-500/40 shadow-2xl shadow-indigo-500/10 flex items-center justify-center">
+              <!-- SVG de la cèl·lula actual -->
+            </div>
+            <h3 id="sim-cell-name" class="text-xl font-bold text-slate-100 mt-4">Nom de la Cèl·lula</h3>
+            <span id="sim-cell-stage" class="text-xs px-3 py-1 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 mt-1">Estadi Progenitor</span>
+          </div>
+
+          <!-- CONTROLS REPRODUCCIÓ -->
+          <div class="flex items-center gap-3 mt-4">
+            <button onclick="simPrevStep()" id="sim-prev-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all border border-slate-700">
+              <i data-lucide="chevron-left" class="w-5 h-5"></i>
+            </button>
+            <button onclick="simToggleAutoplay()" id="sim-play-btn" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/30">
+              <i data-lucide="play" class="w-4 h-4"></i> Reprodueix
+            </button>
+            <button onclick="simNextStep()" id="sim-next-btn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 transition-all border border-slate-700">
+              <i data-lucide="chevron-right" class="w-5 h-5"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- EXPLICACIÓ BIOLÒGICA I CITOQUINES -->
+        <div class="lg:col-span-5 flex flex-col gap-4">
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 flex-1">
+            <h4 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <i data-lucide="microscope" class="w-4 h-4"></i> Canvis Morfològics Clau
+            </h4>
+            <p id="sim-morpho-desc" class="text-sm text-slate-300 leading-relaxed">
+              Descripció dels canvis del nucli, citoplasma i volum durant aquesta fase...
+            </p>
+          </div>
+
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 flex-1">
+            <h4 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <i data-lucide="zap" class="w-4 h-4"></i> Factors de Creixement & Citoquines Clau
+            </h4>
+            <div id="sim-cytokines-list" class="flex flex-wrap gap-2 mt-2">
+              <!-- Citoquines -->
+            </div>
+          </div>
+
+          <div class="glass-panel p-5 rounded-2xl border border-slate-800 flex-1">
+            <h4 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2 flex items-center gap-2">
+              <i data-lucide="clock" class="w-4 h-4"></i> Temps de Maduració
+            </h4>
+            <p id="sim-time-desc" class="text-sm font-medium text-slate-200">Durada estimada de l'estadi: 24 - 48 hores.</p>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECCIÓ 3: LABORATORI DE CITOQUINES I SIMULADOR DE FROTIS SANGUINI EN VIU -->
+    <section id="section-lab" class="tab-section hidden flex-col gap-6">
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- PANELL ESQUERRA: SLIDERS DE CITOQUINES I PRESETS -->
+        <div class="lg:col-span-4 glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col gap-5">
+          <div>
+            <h3 class="text-md font-bold text-indigo-300 flex items-center gap-2">
+              <i data-lucide="sliders" class="w-5 h-5"></i> Control de Citoquines
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">Ajusta els nivells de factors de creixement per veure l'efecte dinàmic sobre la producció sanguínia.</p>
+          </div>
+
+          <!-- BOTONS DE PRESETS CLÍNICOS -->
+          <div class="flex flex-col gap-2">
+            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Presets Clínics Ràpids:</span>
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="applyLabPreset('normal')" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 border border-slate-700 transition-all text-left">Fisiològic Normal</button>
+              <button onclick="applyLabPreset('anemia')" class="px-2.5 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-900/50 text-xs text-red-300 border border-red-800/40 transition-all text-left">Anèmia Severa (↑EPO)</button>
+              <button onclick="applyLabPreset('infeccio')" class="px-2.5 py-1.5 rounded-lg bg-emerald-950/40 hover:bg-emerald-900/50 text-xs text-emerald-300 border border-emerald-800/40 transition-all text-left">Infecció Bacteriana (↑G-CSF)</button>
+              <button onclick="applyLabPreset('alergia')" class="px-2.5 py-1.5 rounded-lg bg-pink-950/40 hover:bg-pink-900/50 text-xs text-pink-300 border border-pink-800/40 transition-all text-left">Al·lèrgia / Parasitosi (↑IL-5)</button>
+            </div>
+          </div>
+
+          <hr class="border-slate-800">
+
+          <!-- SLIDERS -->
+          <div class="space-y-4 text-xs">
+            <!-- EPO -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-red-400">EPO (Eritropoetina):</span>
+                <span id="val-epo" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-epo" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-red-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <!-- TPO -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-amber-400">TPO (Trombopoetina):</span>
+                <span id="val-tpo" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-tpo" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-amber-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <!-- G-CSF -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-emerald-400">G-CSF (Granulòcits):</span>
+                <span id="val-gcsf" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-gcsf" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-emerald-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <!-- M-CSF -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-cyan-400">M-CSF (Monòcits):</span>
+                <span id="val-mcsf" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-mcsf" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-cyan-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <!-- IL-5 -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-pink-400">IL-5 (Eosinòfils):</span>
+                <span id="val-il5" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-il5" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-pink-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+
+            <!-- IL-7 -->
+            <div>
+              <div class="flex justify-between font-medium mb-1">
+                <span class="text-indigo-400">IL-7 (Limfòcits):</span>
+                <span id="val-il7" class="text-slate-300">100%</span>
+              </div>
+              <input type="range" id="slider-il7" min="10" max="500" value="100" oninput="updateLabSimulation()" class="w-full accent-indigo-500 bg-slate-800 rounded-lg h-1.5 cursor-pointer">
+            </div>
+          </div>
+        </div>
+
+        <!-- PANELL CENTRAL: SIMULACIÓ DEL FROTIS SANGUINI EN CANVAS -->
+        <div class="lg:col-span-5 glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col items-center justify-between">
+          <div class="w-full flex items-center justify-between mb-3">
+            <h3 class="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <i data-lucide="eye" class="w-4 h-4 text-indigo-400"></i> Frotis Sanguini Perifèric Simulat
+            </h3>
+            <span class="text-[10px] px-2 py-0.5 rounded bg-slate-800 text-slate-400">Microscopi 100x (Immersió)</span>
+          </div>
+
+          <!-- CANVAS AMB FORMA DE LENT CIRCULAR DE MICROSCOPI -->
+          <div class="relative w-64 h-64 sm:w-80 sm:h-80 rounded-full border-8 border-slate-800 shadow-2xl overflow-hidden bg-[#2d1b28]">
+            <canvas id="smear-canvas" class="w-full h-full cursor-crosshair"></canvas>
+            <div class="absolute inset-0 rounded-full pointer-events-none shadow-[inset_0_0_30px_rgba(0,0,0,0.8)]"></div>
+          </div>
+
+          <p class="text-xs text-slate-400 text-center mt-4">
+            Animació en directe de la dinàmica de cèl·lules circulants adaptada a la producció medul·lar.
+          </p>
+        </div>
+
+        <!-- PANELL DRET: GRÀFIC D'HEMOGRAMA I DISTRIBUCIÓ -->
+        <div class="lg:col-span-3 glass-panel p-6 rounded-2xl border border-slate-800 flex flex-col justify-between gap-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-200 mb-2 flex items-center gap-2">
+              <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-400"></i> Fórmula Leucocitària (%)
+            </h3>
+            <div class="h-48 relative flex items-center justify-center">
+              <canvas id="chart-differential"></canvas>
+            </div>
+          </div>
+
+          <!-- RESUM QUANTITATIU -->
+          <div id="smear-summary" class="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1.5 text-slate-300">
+            <!-- Es calcula per JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SECCIÓ 4: TAULA COMPARATIVA CEL·LULAR -->
+    <section id="section-matrix" class="tab-section hidden flex-col gap-6">
+      <div class="glass-panel p-6 rounded-2xl border border-slate-800">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 class="text-lg font-bold text-indigo-300 flex items-center gap-2">
+              <i data-lucide="table" class="w-5 h-5"></i> Taula Comparativa de Cèl·lules Sanguínies Matures
+            </h2>
+            <p class="text-xs text-slate-400 mt-1">Revisió exhaustiva de paràmetres morfològics, funcionals i clínics.</p>
+          </div>
+          <input type="text" id="matrix-search" oninput="renderMatrixTable()" placeholder="Cerca cèl·lula o funció..." class="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full sm:w-64">
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-slate-800">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-indigo-300 uppercase tracking-wider font-semibold border-b border-slate-800">
+              <tr>
+                <th class="p-3">Cèl·lula</th>
+                <th class="p-3">Diàmetre (µm)</th>
+                <th class="p-3">Nucli</th>
+                <th class="p-3">Citoplasma / Grànuls</th>
+                <th class="p-3">Vida Mitjana</th>
+                <th class="p-3">Valors Normal Sanguinis</th>
+                <th class="p-3">Funció Principal</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-tbody" class="divide-y divide-slate-800/60 bg-slate-900/40">
+              <!-- Renderitzat per JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- PANELL LATERAL / DRAWER D'INSPECCIÓ CEL·LULAR COMPLETA -->
+  <div id="inspector-drawer" class="fixed inset-y-0 right-0 w-full max-w-md bg-slate-900/95 border-l border-slate-800 shadow-2xl backdrop-blur-xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col justify-between overflow-y-auto">
+    
+    <div>
+      <!-- HEADER DRAWER -->
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between sticky top-0 bg-slate-900/90 backdrop-blur">
+        <div class="flex items-center gap-2">
+          <i data-lucide="search" class="w-5 h-5 text-indigo-400"></i>
+          <h3 class="font-bold text-slate-100 text-base">Inspector Cel·lular Detail</h3>
+        </div>
+        <button onclick="closeInspector()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-slate-200 transition-all">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- CONTINGUT DETALLAT -->
+      <div class="p-6 space-y-6">
+        
+        <!-- MICRO-GRAFIC I TITOL -->
+        <div class="flex items-center gap-4 bg-slate-950 p-4 rounded-2xl border border-slate-800">
+          <div id="inspector-svg" class="w-20 h-20 rounded-full bg-slate-900 p-2 border border-indigo-500/30 flex items-center justify-center flex-shrink-0">
+            <!-- SVG Dinàmic -->
+          </div>
+          <div>
+            <h4 id="inspector-title" class="text-lg font-bold text-slate-100">Nom Cèl·lula</h4>
+            <span id="inspector-lineage-badge" class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800 font-semibold uppercase tracking-wide">
+              Línia
+            </span>
+          </div>
+        </div>
+
+        <!-- MÈTRIQUES RÀPIDES -->
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-slate-400 block mb-0.5">Mida / Diàmetre:</span>
+            <span id="inspector-size" class="font-bold text-slate-200">-</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80">
+            <span class="text-slate-400 block mb-0.5">Vida Mitjana:</span>
+            <span id="inspector-lifespan" class="font-bold text-slate-200">-</span>
+          </div>
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800/80 col-span-2">
+            <span class="text-slate-400 block mb-0.5">Rang de Referència en Sang:</span>
+            <span id="inspector-ref-range" class="font-semibold text-emerald-400">-</span>
+          </div>
+        </div>
+
+        <!-- CARACTERÍSTIQUES MORFOLÒGIQUES -->
+        <div class="space-y-3">
+          <h5 class="text-xs font-semibold text-indigo-300 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="eye" class="w-4 h-4"></i> Característiques Microscòpiques
+          </h5>
+          <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60 text-xs space-y-2">
+            <p><strong class="text-slate-300">Nucli:</strong> <span id="inspector-nucleus" class="text-slate-400">--</span></p>
+            <p><strong class="text-slate-300">Citoplasma:</strong> <span id="inspector-cytoplasm" class="text-slate-400">--</span></p>
+          </div>
+        </div>
+
+        <!-- FUNCIÓ BIOLÒGICA -->
+        <div class="space-y-2">
+          <h5 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="activity" class="w-4 h-4"></i> Funció Principal
+          </h5>
+          <p id="inspector-function" class="text-xs text-slate-300 leading-relaxed bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/60">
+            --
+          </p>
+        </div>
+
+        <!-- CITOQUINES REGULADORES -->
+        <div class="space-y-2">
+          <h5 class="text-xs font-semibold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="zap" class="w-4 h-4"></i> Citoquines & Factors de Creixement
+          </h5>
+          <div id="inspector-cytokines" class="flex flex-wrap gap-1.5">
+            <!-- Citoquines badges -->
+          </div>
+        </div>
+
+        <!-- RELEVÀNCIA CLÍNICA -->
+        <div class="space-y-2">
+          <h5 class="text-xs font-semibold text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="alert-triangle" class="w-4 h-4"></i> Rellevància Clínica & Patologia
+          </h5>
+          <p id="inspector-clinical" class="text-xs text-slate-300 leading-relaxed bg-red-950/20 border border-red-900/30 p-3.5 rounded-xl">
+            --
+          </p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- FOOTER DRAWER -->
+    <div class="p-4 border-t border-slate-800 bg-slate-950 text-center">
+      <button onclick="closeInspector()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 rounded-xl transition-all">
+        Tanca el Panell d'Inspecció
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: GUIA PAS A PAS PER PUBLICAR DE FRANC -->
+  <div id="publish-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-panel max-w-2xl w-full rounded-2xl border border-slate-700 p-6 space-y-5 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <i data-lucide="globe" class="w-5 h-5 text-emerald-400"></i>
+          <h3 class="text-base font-bold text-slate-100">Guia: Com Publicar Aquest Dashboard de franc</h3>
+        </div>
+        <button onclick="closePublishModal()" class="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="text-xs text-slate-300 space-y-4 leading-relaxed">
+        <p>
+          Tot el codi d'aquesta aplicació està contingut en un **únic fitxer HTML**. Pots publicar-lo en pocs segons a qualsevol plataforma d'allotjament web gratuïta sense necessitat de servidors ni bases de dades.
+        </p>
+
+        <!-- OPCIÓ 1: GITHUB PAGES -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <h4 class="font-bold text-emerald-400 flex items-center gap-1.5">
+            <i data-lucide="github" class="w-4 h-4"></i> Opció 1: GitHub Pages (Recomanada)
+          </h4>
+          <ol class="list-decimal list-inside space-y-1 text-slate-400 pl-1">
+            <li>Guarda aquest fitxer al teu ordinador amb el nom <code class="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">index.html</code>.</li>
+            <li>Crea un compte gratuït a <a href="https://github.com" target="_blank" class="underline text-indigo-400">GitHub.com</a> i crea un repositori nou anomenat per exemple <code class="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">hematopoiesi</code>.</li>
+            <li>Puja el fitxer <code class="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">index.html</code> al repositori.</li>
+            <li>Vàs a <strong>Settings > Pages</strong>, tria la branca <code class="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">main</code> i desa. En 1 minut tindràs la teua URL pública gratuïta!</li>
+          </ol>
+        </div>
+
+        <!-- OPCIÓ 2: NETLIFY / VERCEL -->
+        <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-2">
+          <h4 class="font-bold text-indigo-400 flex items-center gap-1.5">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i> Opció 2: Netlify Drop (Més ràpid - Sense programar)
+          </h4>
+          <ol class="list-decimal list-inside space-y-1 text-slate-400 pl-1">
+            <li>Visita <a href="https://app.netlify.com/drop" target="_blank" class="underline text-indigo-400">app.netlify.com/drop</a>.</li>
+            <li>Arrossega la carpeta que conté el teu fitxer <code class="text-indigo-300 bg-slate-900 px-1 py-0.5 rounded">index.html</code>.</li>
+            <li>L'aplicació es publicarà a l'instant amb una URL web pública activa per sempre!</li>
+          </ol>
+        </div>
+      </div>
+
+      <div class="pt-3 border-t border-slate-800 flex justify-end">
+        <button onclick="closePublishModal()" class="px-4 py-2 rounded-xl bg-emerald-600 text-white font-medium text-xs hover:bg-emerald-500 transition-all">
+          Entesos, gràcies!
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SCRIPT LÒGICA I DADES EN CATALÀ -->
+  <script>
+    /* ==========================================================================
+       1. BASE DE DADES COMPLETA DE CÈL·LULES HEMATOPOÈTIQUES
+       ========================================================================== */
+    const CELL_DATABASE = {
+      hsc: {
+        id: "hsc",
+        name: "Cèl·lula Mare Hematopoètica (HSC)",
+        lineage: "Stem Cell",
+        lineageGroup: "stem",
+        size: "10 - 12 µm",
+        lifespan: "Autorenovació (Tota la vida)",
+        refRange: "< 0.01% en Medul·la Òria",
+        nucleus: "Gran, rodó, eucromàtic amb 1-2 nuclèols visibles",
+        cytoplasm: "Escàs, lleugerament basòfil",
+        function: "Multipotencialitat i capacitat d'autorenovació per generar totes les línies cel·lulars de la sang.",
+        cytokines: ["SCF (Stem Cell Factor)", "FLT3-L", "TPO"],
+        clinical: "L'esgotament de HSCs condueix a anèmia aplàstica; s'utilitzen en trasplantaments de medul·la òria.",
+        svgType: "hsc"
+      },
+      cmp: {
+        id: "cmp",
+        name: "Progenidor Mieloide Comú (CMP)",
+        lineage: "Línia Mieloide",
+        lineageGroup: "mieloide",
+        size: "12 - 15 µm",
+        lifespan: "Dies (Estadi transitori)",
+        refRange: "Present a la Medul·la Òria",
+        nucleus: "Rodó, cromatina laxa, sense heterocromatina densa",
+        cytoplasm: "Basòfil moderat sense grànuls",
+        function: "Progenidor compromès que dóna lloc a les línies eritroide, megacariocítica i granulocítica/monocítica.",
+        cytokines: ["IL-3", "GM-CSF", "SCF"],
+        clinical: "Mutacions en aquesta etapa poden derivar en Leucèmia Mieloide Aguda (LMA).",
+        svgType: "cmp"
+      },
+      clp: {
+        id: "clp",
+        name: "Progenidor Limfoide Comú (CLP)",
+        lineage: "Línia Limfoide",
+        lineageGroup: "limfoide",
+        size: "10 - 14 µm",
+        lifespan: "Dies (Estadi transitori)",
+        refRange: "Medul·la Òria i Òrgans Limfoides",
+        nucleus: "Gran i rodó, cromatina lleugerament condensada",
+        cytoplasm: "Escàs basòfil",
+        function: "Dóna lloc a la totalitat dels limfòcits B, limfòcits T i cèl·lules NK.",
+        cytokines: ["IL-7", "FLT3-L"],
+        clinical: "S'associa a l'origen de la Leucèmia Limfoblàstica Aguda (LLA).",
+        svgType: "clp"
+      },
+
+      /* ERITROPOÏESI */
+      proeritroblast: {
+        id: "proeritroblast",
+        name: "Proeritroblast",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "14 - 19 µm",
+        lifespan: "20 - 24 hores",
+        refRange: "~1% en Medul·la Òria",
+        nucleus: "Gran, central, cromatina fina reticulada, 1-2 nuclèols",
+        cytoplasm: "Intensament basòfil (blau marí fosca per alt contingut de RNA)",
+        function: "Primer precursor morfologicament reconeixible de la línia eritroide.",
+        cytokines: ["EPO", "IL-3", "SCF"],
+        clinical: "Augmenta de forma molt marcada en respostes compensatòries a la hipòxia.",
+        svgType: "proeritroblast"
+      },
+      eritroblast_basofil: {
+        id: "eritroblast_basofil",
+        name: "Eritroblast Basòfil",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "12 - 17 µm",
+        lifespan: "20 hores",
+        refRange: "1 - 4% en Medul·la Òria",
+        nucleus: "Cromatina més condensada, nuclèols ja no visibles",
+        cytoplasm: "Molt basòfil (blau intens)",
+        function: "Síntesi activa de ribosomes i inici de producció d'hemoglobina.",
+        cytokines: ["EPO"],
+        clinical: "Observat en hiperplàsia eritroide medul·lar.",
+        svgType: "eritroblast_basofil"
+      },
+      eritroblast_policromatofil: {
+        id: "eritroblast_policromatofil",
+        name: "Eritroblast Policromatòfil",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "10 - 15 µm",
+        lifespan: "25 hores",
+        refRange: "5 - 10% en Medul·la Òria",
+        nucleus: "Cromatina molt condensada ('roda de carro')",
+        cytoplasm: "Gris-violaci (barreja d'ARN basòfil i hemoglobina acidòfila)",
+        function: "Últim estadi eritroide amb capacitat de divisió cel·lular (mitosi).",
+        cytokines: ["EPO"],
+        clinical: "Reflecteix l'acumulació progressiva d'hemoglobina.",
+        svgType: "eritroblast_policromatofil"
+      },
+      eritroblast_ortocromatofil: {
+        id: "eritroblast_ortocromatofil",
+        name: "Eritroblast Ortocromatòfil (Normoblast)",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "8 - 12 µm",
+        lifespan: "30 hores",
+        refRange: "5 - 10% en Medul·la Òria (0% en sang)",
+        nucleus: "Petit, picnòtic (molt condensed i fosc), en posició excèntrica",
+        cytoplasm: "Rosat-acidòfil (abundant hemoglobina)",
+        function: "Expulsió activa del nucli per convertir-se en reticulòcit.",
+        cytokines: ["EPO"],
+        clinical: "La seua presència en sang perifèrica indica anèmia hemolítica greu o eritroblastosi fetal.",
+        svgType: "eritroblast_ortocromatofil"
+      },
+      reticulocit: {
+        id: "reticulocit",
+        name: "Reticulòcit",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "7.5 - 8.5 µm",
+        lifespan: "1 - 2 dies en sang perifèrica",
+        refRange: "0.5% - 2.0% dels glòbuls vermells",
+        nucleus: "Absent (Anucleat)",
+        cytoplasm: "Rosat amb una xarxa residual blau-violàcia de ribosomal RNA",
+        function: "Completar la maduració final d'hemoglobina a la circulació.",
+        cytokines: ["EPO"],
+        clinical: "Indicador directe de la capacitat regenerativa medul·lar (Reticulocitosi en anèmies hemolítiques).",
+        svgType: "reticulocit"
+      },
+      eritrocit: {
+        id: "eritrocit",
+        name: "Eritròcit (Glòbul Vermell)",
+        lineage: "Eritropoïesi",
+        lineageGroup: "eritropoiesi",
+        size: "7.2 - 7.8 µm",
+        lifespan: "120 dies",
+        refRange: "4.2 - 5.9 x 10^6 / µL",
+        nucleus: "Absent (Anucleat)",
+        cytoplasm: "Disc bicòncau rosat/vermell amb centralitat clara (pal·lidesa central 1/3)",
+        function: "Transport d'oxigen (O2) dels pulmons als teixits i CO2 de tornada via Hemoglobina.",
+        cytokines: ["EPO"],
+        clinical: "Disminució: Anèmia (ferropènica, megaloblàstica). Augment: Policitèmia vera, hipòxia crònica.",
+        svgType: "eritrocit"
+      },
+
+      /* TROMBOPOÏESI */
+      megacarioblast: {
+        id: "megacarioblast",
+        name: "Megacarioblast",
+        lineage: "Trombopoïesi",
+        lineageGroup: "trombopoiesi",
+        size: "15 - 25 µm",
+        lifespan: "1 - 2 dies",
+        refRange: "< 1% en Medul·la",
+        nucleus: "Oval o ovoidal, cromatina fina, 1-3 nuclèols",
+        cytoplasm: "Intensament basòfil, sense grànuls",
+        function: "Inici del procés d'endomitosi (duplicació de DNA sense divisió del citoplasma).",
+        cytokines: ["TPO", "IL-3", "IL-6"],
+        clinical: "Present en síndromes mielodisplàsiques i megacarioblastosi.",
+        svgType: "megacarioblast"
+      },
+      promegacariocit: {
+        id: "promegacariocit",
+        name: "Promegacariòcit",
+        lineage: "Trombopoïesi",
+        lineageGroup: "trombopoiesi",
+        size: "20 - 50 µm",
+        lifespan: "2 dies",
+        refRange: "1 - 2% en Medul·la",
+        nucleus: "Multilobulat (4N a 16N), cromatina condensada",
+        cytoplasm: "Basofília moderada amb grànuls azuròfils primaris",
+        function: "Desenvolupament del sistema de membranes de demarcació internes.",
+        cytokines: ["TPO"],
+        clinical: "Etapa de ràpida expansió del volum citoplasmàtic.",
+        svgType: "promegacariocit"
+      },
+      megacariocit: {
+        id: "megacariocit",
+        name: "Megacariòcit",
+        lineage: "Trombopoïesi",
+        lineageGroup: "trombopoiesi",
+        size: "50 - 100 µm (La cèl·lula més gran)",
+        lifespan: "7 - 10 dies",
+        refRange: "0.05 - 0.1% a la Medul·la òria",
+        nucleus: "Molt gran, altament lobulat i poliploide (16N - 64N)",
+        cytoplasm: "Abundant, ric en grànuls rics en factors de coagulació i proplaquetes",
+        function: "Fragmentació del citoplasma en milers de proplaquetes alliberades als sinusoides.",
+        cytokines: ["TPO"],
+        clinical: "Alterat en Trombocitèmia Essencial, Mielofibrosi i Púrpura Trombocitopènica Immune (PTI).",
+        svgType: "megacariocit"
+      },
+      plaqueta: {
+        id: "plaqueta",
+        name: "Plaqueta (Trombòcit)",
+        lineage: "Trombopoïesi",
+        lineageGroup: "trombopoiesi",
+        size: "2 - 4 µm",
+        lifespan: "8 - 10 dies",
+        refRange: "150,000 - 450,000 / µL",
+        nucleus: "Absent (Fragments citoplasmàtics)",
+        cytoplasm: "Hialòmer perifèric clar i Granulòmer central purpuri",
+        function: "Hemostàsia primària: adhesió, activació i agregació plaquetària per formar el tap hemostàtic.",
+        cytokines: ["TPO"],
+        clinical: "Trombocitopènia (< 150k): risc hemorràgic. Trombocitosi (> 450k): risc de trombosi.",
+        svgType: "plaqueta"
+      },
+
+      /* LEUCOPOÏESI - GRANULÒCITS */
+      mieloblast: {
+        id: "mieloblast",
+        name: "Mieloblast",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "15 - 20 µm",
+        lifespan: "1 dia",
+        refRange: "1 - 2% en Medul·la",
+        nucleus: "Gran, rodó/oval, cromatina laxa reticulada, 2-5 nuclèols clars",
+        cytoplasm: "Blau clar basòfil, sense grànuls",
+        function: "Precursor blast de tots els granulòcits (neutròfils, eosinòfils i basòfils).",
+        cytokines: ["G-CSF", "GM-CSF", "IL-3"],
+        clinical: "El seua augment (>20% en medul·la) defineix la Leucèmia Mieloide Aguda (LMA).",
+        svgType: "mieloblast"
+      },
+      promielocit: {
+        id: "promielocit",
+        name: "Promielòcit",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "16 - 25 µm",
+        lifespan: "1 - 3 dies",
+        refRange: "1 - 4% en Medul·la",
+        nucleus: "Ovalat, nuclèols encara visibles, cromatina en condensació",
+        cytoplasm: "Abundant, amb grans grànuls azuròfils primaris (Mieloperoxidasa+)",
+        function: "Síntesi massiva de grànuls primaris de defensa.",
+        cytokines: ["G-CSF", "GM-CSF"],
+        clinical: "Acumulat en Leucèmia Promielocítica Aguda (LPA) amb risc de CID (coagulació intravascular).",
+        svgType: "promielocit"
+      },
+      mielocit: {
+        id: "mielocit",
+        name: "Mielòcit",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "12 - 18 µm",
+        lifespan: "2 - 4 dies",
+        refRange: "5 - 15% en Medul·la",
+        nucleus: "Excèntric, aplanat per un costat (d-shaped), sense nuclèols",
+        cytoplasm: "Aparició de grànuls específics secundaris (neutròfils, eosinòfils o basòfils)",
+        function: "Darrera etapa de la granulopoïesi capaç de fer mitosi.",
+        cytokines: ["G-CSF", "IL-5", "IL-3"],
+        clinical: "Aparició en sang indica 'desviació a l'esquerra' accentuada.",
+        svgType: "mielocit"
+      },
+      metamielocit: {
+        id: "metamielocit",
+        name: "Metamielòcit",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "10 - 15 µm",
+        lifespan: "2 - 3 dies",
+        refRange: "10 - 15% a la Medul·la (0% en sang)",
+        nucleus: "Indentat en forma de ronyó o mongeta",
+        cytoplasm: "Rosat pàl·lid plè de grànuls específics maturs",
+        function: "Maduració i condensació nuclear progressiva.",
+        cytokines: ["G-CSF"],
+        clinical: "S'allibera a sang perifèrica en reaccions leucemoides o sepsis greu.",
+        svgType: "metamielocit"
+      },
+      banda: {
+        id: "banda",
+        name: "Cèl·lula en Banda (Cayado)",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "10 - 14 µm",
+        lifespan: "12 hores",
+        refRange: "1 - 5% dels leucòcits sanguinis",
+        nucleus: "En forma de ferradura o 'C' d'amplada uniforme, sense filaments",
+        cytoplasm: "Clar amb abundants grànuls neutralitzants fins",
+        function: "Neutròfil immatur gairebé a punt per a la fagocitosi.",
+        cytokines: ["G-CSF"],
+        clinical: "L'increment en sang s'anomena 'Desviació a l'esquerra', signe d'infecció bacteriana aguda.",
+        svgType: "banda"
+      },
+      neutrofil: {
+        id: "neutrofil",
+        name: "Neutròfil Segmentat",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "12 - 15 µm",
+        lifespan: "6 - 12 hores en sang (dies als teixits)",
+        refRange: "2,000 - 7,500 / µL (50 - 70% dels leucòcits)",
+        nucleus: "Segmentat en 3 a 5 lòbuls units per fins filaments de cromatina",
+        cytoplasm: "Rosa pàl·lid amb grànuls secundaris fins de lisozima i lactoferrina",
+        function: "Primera línia de defensa contra infeccions bacterianes i fúngiques per fagocitosi i trampes NETs.",
+        cytokines: ["G-CSF", "GM-CSF"],
+        clinical: "Neutropènia (<1500/µL): alt risc infecciós. Neutrofília (>7500/µL): infecció bacteriana, inflamació.",
+        svgType: "neutrofil"
+      },
+      eosinofil: {
+        id: "eosinofil",
+        name: "Eosinòfil",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "12 - 17 µm",
+        lifespan: "8 - 18 hores en sang",
+        refRange: "40 - 400 / µL (1 - 4% dels leucòcits)",
+        nucleus: "Típicament bilobulat en 'ulleres de sol'",
+        cytoplasm: "Ocupat per grans grànuls taronges/coral de proteïna bàsica major i neurotoxina",
+        function: "Defensa contra paràsits helmints i modulació de les respostes al·lèrgiques i asma.",
+        cytokines: ["IL-5", "IL-3", "GM-CSF"],
+        clinical: "Eosinofília: Paràsits intestinals, reaccions al·lèrgiques, asma, síndromes hipereosinofíliques.",
+        svgType: "eosinofil"
+      },
+      basofil: {
+        id: "basofil",
+        name: "Basòfil",
+        lineage: "Granulòcits",
+        lineageGroup: "granulocits",
+        size: "10 - 14 µm",
+        lifespan: "Unes quantes hores a dies",
+        refRange: "10 - 100 / µL (0.5 - 1% dels leucòcits)",
+        nucleus: "Lobat o en forma de 'S', sovint amagat pels grànuls",
+        cytoplasm: "Nombrosos grànuls gruixuts blau-violacis foscos (ric en histamina i heparina)",
+        function: "Mediació de respostes d'hipersensibilitat immediata (al·lèrgies, anafilaxi) i alliberament d'histamina.",
+        cytokines: ["IL-3", "SCF"],
+        clinical: "Basofília: Típica en malalties mieloproliferatives com la Leucèmia Mieloide Crònica (LMC).",
+        svgType: "basofil"
+      },
+
+      /* LEUCOPOÏESI - AGRANULÒCITS */
+      monoblast: {
+        id: "monoblast",
+        name: "Monoblast",
+        lineage: "Agranulòcits",
+        lineageGroup: "agranulocits",
+        size: "15 - 22 µm",
+        lifespan: "1 dia",
+        refRange: "< 1% en Medul·la",
+        nucleus: "Gran, rodó/oval, cromatina fina, 1-2 nuclèols",
+        cytoplasm: "Blau-grisós sense grànuls",
+        function: "Precursor immediat de la línia monocítica.",
+        cytokines: ["M-CSF", "GM-CSF", "IL-3"],
+        clinical: "Blast predominant en la Leucèmia Monocítica Aguda (LMA-M5).",
+        svgType: "monoblast"
+      },
+      promonocit: {
+        id: "promonocit",
+        name: "Promonòcit",
+        lineage: "Agranulòcits",
+        lineageGroup: "agranulocits",
+        size: "14 - 20 µm",
+        lifespan: "1 dia",
+        refRange: "< 2% en Medul·la",
+        nucleus: "Indentat o plegat, cromatina laxa",
+        cytoplasm: "Grisós amb fines granulacions azuròfiques escasses",
+        function: "Transició en la maduració del monòcit.",
+        cytokines: ["M-CSF"],
+        clinical: "Incrementat en síndromes mielodisplàsiques i mielomonocítiques.",
+        svgType: "promonocit"
+      },
+      monocit: {
+        id: "monocit",
+        name: "Monòcit",
+        lineage: "Agranulòcits",
+        lineageGroup: "agranulocits",
+        size: "15 - 22 µm (El leucòcit més gran)",
+        lifespan: "1 - 3 dies en sang (Mesos als teixits)",
+        refRange: "200 - 800 / µL (2 - 8% dels leucòcits)",
+        nucleus: "Reniforme (forma de ronyó) o plegat en cervell, cromatina reticulada",
+        cytoplasm: "Blau-grisós 'vidre deslustrat' amb fines vacuoles i grànuls azuròfils escassos",
+        function: "Fagocitosi, presentació d'antígens (APC) i migració als teixits per convertir-se en Macròfags.",
+        cytokines: ["M-CSF", "GM-CSF"],
+        clinical: "Monocitosi: Infeccions cròniques (Tuberculosi, Endocarditis), Malaltia de Crohn, LMMC.",
+        svgType: "monocit"
+      },
+      macrofag: {
+        id: "macrofag",
+        name: "Macròfag / Cèl·lula Dendrítica",
+        lineage: "Agranulòcits",
+        lineageGroup: "agranulocits",
+        size: "20 - 80 µm",
+        lifespan: "Mesos o anys als teixits",
+        refRange: "Teixits (Kupffer, Microglia, Osteoclasts)",
+        nucleus: "Excèntric, irregular o renal",
+        cytoplasm: "Molt abundant, ric en fagolisosomes, vacuoles i pseudòpodes",
+        function: "Fagocitosi professional, eliminació de detritus i orquestració de la resposta immunitària.",
+        cytokines: ["M-CSF", "IFN-gamma"],
+        clinical: "Formació de granulomes en Tuberculosi, Sarcoïdosi i emmagatzematge cel·lular.",
+        svgType: "macrofag"
+      },
+
+      /* LIMFÒCITS */
+      limfoblast: {
+        id: "limfoblast",
+        name: "Limfoblast",
+        lineage: "Limfòcits",
+        lineageGroup: "agranulocits",
+        size: "10 - 18 µm",
+        lifespan: "1 - 2 dies",
+        refRange: "< 1% en Medul·la",
+        nucleus: "Rodó/oval, cromatina homogènia fina, 1-2 nuclèols poc visibles",
+        cytoplasm: "Escàs, clarament basòfil",
+        function: "Precursor cel·lular de la línia limfopoètic (B, T i NK).",
+        cytokines: ["IL-7", "FLT3-L"],
+        clinical: "Acumulat massivament en la Leucèmia Limfoblàstica Aguda (LLA) infantil.",
+        svgType: "limfoblast"
+      },
+      limfocit_b: {
+        id: "limfocit_b",
+        name: "Limfòcit B (i Cèl·lula Plasmàtica)",
+        lineage: "Limfòcits",
+        lineageGroup: "agranulocits",
+        size: "7 - 12 µm (Plasmàtica 12-20 µm)",
+        lifespan: "Setmanes a anys (Memòria)",
+        refRange: "1,000 - 3,000 / µL (20 - 40% leucòcits)",
+        nucleus: "Rodó i molt dens. En plasmàtica: excèntric en 'roda de carro'",
+        cytoplasm: "Aro prim blau cel. En plasmàtica: blau intens amb arcoplasma clar (Golgi)",
+        function: "Immunitat humoral: producció d'anticossos (Immunoglobulines) en convertir-se en Cèl·lula Plasmàtica.",
+        cytokines: ["IL-4", "IL-6", "IL-7", "BAFF"],
+        clinical: "Mieloma Múltiple (càncer de cèl·lules plasmàtiques), LLC (Leucèmia Limfàtica Crònica).",
+        svgType: "limfocit_b"
+      },
+      limfocit_t: {
+        id: "limfocit_t",
+        name: "Limfòcit T (CD4+ Helper / CD8+ Citotòxic)",
+        lineage: "Limfòcits",
+        lineageGroup: "agranulocits",
+        size: "7 - 12 µm",
+        lifespan: "Anys o dècades",
+        refRange: "70 - 80% dels limfòcits sanguinis",
+        nucleus: "Gran, rodó, cromatina molt empacada i fosca",
+        cytoplasm: "Anell molt estrets de citoplasma blau clar",
+        function: "Immunitat cel·lular adaptativa: activació d'altres cèl·lules (CD4+) i llisi directa de cèl·lules infectades (CD8+).",
+        cytokines: ["IL-2", "IL-7", "IL-15"],
+        clinical: "Target principal del virus VIH (destrucció de T CD4+ -> SIDA), malalties autoimmunes.",
+        svgType: "limfocit_t"
+      },
+      limfocit_nk: {
+        id: "limfocit_nk",
+        name: "Cèl·lula NK (Natural Killer)",
+        lineage: "Limfòcits",
+        lineageGroup: "agranulocits",
+        size: "12 - 15 µm (Limfòcit Gran Granular)",
+        lifespan: "1 - 2 setmanes",
+        refRange: "5 - 15% dels limfòcits circulants",
+        nucleus: "Excèntric, oval o renal",
+        cytoplasm: "Més abundant, amb distints grànuls azuròfils de perforines i granzims",
+        function: "Immunitat innata antitumoral i antiviral sense requerir sensibilització prèvia.",
+        cytokines: ["IL-15", "IL-12", "IL-2"],
+        clinical: "Deficiències causen Infeccions virals greus recurrents (com Herpesviridae).",
+        svgType: "limfocit_nk"
+      }
+    };
+
+    /* ==========================================================================
+       2. GENERADOR D'IL·LUSTRACIONS MICROSCÒPIQUES EN SVG ACCURATE
+       ========================================================================== */
+    function renderCellSVG(type, size = 80) {
+      const viewBox = "0 0 100 100";
+      let content = "";
+
+      switch(type) {
+        case 'hsc':
+        case 'cmp':
+        case 'clp':
+          content = `
+            <circle cx="50" cy="50" r="42" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+            <circle cx="50" cy="50" r="34" fill="#311b92" opacity="0.9"/>
+            <circle cx="42" cy="42" r="8" fill="#e2e8f0" opacity="0.4"/>
+            <circle cx="58" cy="55" r="5" fill="#e2e8f0" opacity="0.3"/>
+          `;
+          break;
+
+        case 'proeritroblast':
+          content = `
+            <circle cx="50" cy="50" r="44" fill="#1e1b4b" stroke="#6366f1" stroke-width="2"/>
+            <circle cx="50" cy="50" r="35" fill="#2e1065"/>
+            <circle cx="40" cy="40" r="7" fill="#c084fc" opacity="0.5"/>
+          `;
+          break;
+
+        case 'eritroblast_basofil':
+          content = `
+            <circle cx="50" cy="50" r="40" fill="#1e3a8a"/>
+            <circle cx="50" cy="50" r="30" fill="#1e1b4b"/>
+          `;
+          break;
+
+        case 'eritroblast_policromatofil':
+          content = `
+            <circle cx="50" cy="50" r="36" fill="#64748b"/>
+            <circle cx="50" cy="50" r="24" fill="#0f172a" stroke="#475569" stroke-width="2" stroke-dasharray="4,2"/>
+          `;
+          break;
+
+        case 'eritroblast_ortocromatofil':
+          content = `
+            <circle cx="50" cy="50" r="32" fill="#f43f5e" opacity="0.8"/>
+            <circle cx="62" cy="50" r="12" fill="#020617"/>
+          `;
+          break;
+
+        case 'reticulocit':
+          content = `
+            <circle cx="50" cy="50" r="34" fill="#f43f5e" opacity="0.85"/>
+            <path d="M 38 40 Q 50 35 60 45 T 45 62" fill="none" stroke="#311b92" stroke-width="2.5" stroke-dasharray="2,2"/>
+          `;
+          break;
+
+        case 'eritrocit':
+          content = `
+            <circle cx="50" cy="50" r="35" fill="#e11d48"/>
+            <circle cx="50" cy="50" r="18" fill="#fda4af" opacity="0.75"/>
+          `;
+          break;
+
+        case 'megacarioblast':
+        case 'promegacariocit':
+          content = `
+            <circle cx="50" cy="50" r="44" fill="#312e81"/>
+            <path d="M 35 35 Q 50 20 65 35 Q 80 50 65 65 Q 50 80 35 65 Q 20 50 35 35 Z" fill="#1e1b4b" stroke="#818cf8"/>
+          `;
+          break;
+
+        case 'megacariocit':
+          content = `
+            <circle cx="50" cy="50" r="46" fill="#431407" stroke="#f59e0b" stroke-width="2"/>
+            <!-- Nucli Lobulat Complex -->
+            <path d="M 30 30 Q 50 15 70 30 Q 85 50 70 70 Q 50 85 30 70 Q 15 50 30 30 Z" fill="#1e1b4b"/>
+            <circle cx="35" cy="40" r="12" fill="#311b92"/>
+            <circle cx="60" cy="40" r="14" fill="#311b92"/>
+            <circle cx="50" cy="62" r="15" fill="#311b92"/>
+            <!-- Vesícules proplaquetes -->
+            <circle cx="15" cy="50" r="3" fill="#f59e0b"/>
+            <circle cx="85" cy="45" r="3" fill="#f59e0b"/>
+            <circle cx="50" cy="90" r="3.5" fill="#f59e0b"/>
+          `;
+          break;
+
+        case 'plaqueta':
+          content = `
+            <path d="M 40 35 Q 60 25 70 45 Q 65 65 45 60 Q 30 55 40 35 Z" fill="#c084fc" opacity="0.8"/>
+            <circle cx="50" cy="48" r="2" fill="#581c87"/>
+            <circle cx="55" cy="42" r="1.5" fill="#581c87"/>
+            <circle cx="44" cy="52" r="1.5" fill="#581c87"/>
+          `;
+          break;
+
+        case 'mieloblast':
+        case 'promielocit':
+          content = `
+            <circle cx="50" cy="50" r="42" fill="#064e3b"/>
+            <circle cx="50" cy="48" r="32" fill="#1e1b4b"/>
+            <!-- Grànuls azuròfils -->
+            <circle cx="30" cy="30" r="2" fill="#a855f7"/>
+            <circle cx="70" cy="60" r="2" fill="#a855f7"/>
+            <circle cx="25" cy="60" r="2.5" fill="#a855f7"/>
+          `;
+          break;
+
+        case 'mielocit':
+        case 'metamielocit':
+          content = `
+            <circle cx="50" cy="50" r="38" fill="#022c22"/>
+            <!-- Nucli en ronyó -->
+            <path d="M 35 30 C 55 30, 65 45, 65 60 C 65 70, 50 70, 42 55 C 38 48, 30 40, 35 30 Z" fill="#1e1b4b"/>
+          `;
+          break;
+
+        case 'banda':
+          content = `
+            <circle cx="50" cy="50" r="36" fill="#065f46" opacity="0.7"/>
+            <!-- Nucli en ferradura -->
+            <path d="M 30 30 C 65 20, 75 50, 65 70 C 55 80, 45 60, 55 45 C 50 35, 35 40, 30 30 Z" fill="#311b92" stroke="#4c1d95" stroke-width="2"/>
+          `;
+          break;
+
+        case 'neutrofil':
+          content = `
+            <circle cx="50" cy="50" r="36" fill="#fbcfe8" opacity="0.5"/>
+            <!-- Nucli Segmentat (3-4 lòbuls) -->
+            <circle cx="35" cy="35" r="10" fill="#311b92"/>
+            <circle cx="65" cy="40" r="9" fill="#311b92"/>
+            <circle cx="48" cy="65" r="11" fill="#311b92"/>
+            <path d="M 35 35 L 65 40 L 48 65" fill="none" stroke="#311b92" stroke-width="3"/>
+          `;
+          break;
+
+        case 'eosinofil':
+          content = `
+            <circle cx="50" cy="50" r="38" fill="#ffedd5"/>
+            <!-- Nucli Bilobulat -->
+            <circle cx="36" cy="50" r="13" fill="#311b92"/>
+            <circle cx="64" cy="50" r="13" fill="#311b92"/>
+            <line x1="36" y1="50" x2="64" y2="50" stroke="#311b92" stroke-width="4"/>
+            <!-- Grànuls vermells-taronges -->
+            <circle cx="30" cy="30" r="3" fill="#ea580c"/>
+            <circle cx="70" cy="30" r="3" fill="#ea580c"/>
+            <circle cx="50" cy="25" r="3.5" fill="#ea580c"/>
+            <circle cx="50" cy="72" r="3" fill="#ea580c"/>
+            <circle cx="30" cy="70" r="3" fill="#ea580c"/>
+            <circle cx="70" cy="70" r="3" fill="#ea580c"/>
+          `;
+          break;
+
+        case 'basofil':
+          content = `
+            <circle cx="50" cy="50" r="36" fill="#e0e7ff"/>
+            <!-- Nucli intern -->
+            <circle cx="50" cy="50" r="22" fill="#311b92"/>
+            <!-- Grànuls obscurs que tapen el nucli -->
+            <circle cx="35" cy="35" r="4.5" fill="#020617"/>
+            <circle cx="60" cy="30" r="5" fill="#020617"/>
+            <circle cx="45" cy="55" r="5" fill="#020617"/>
+            <circle cx="68" cy="58" r="4" fill="#020617"/>
+            <circle cx="30" cy="62" r="4.5" fill="#020617"/>
+            <circle cx="52" cy="72" r="4" fill="#020617"/>
+          `;
+          break;
+
+        case 'monoblast':
+        case 'promonocit':
+          content = `
+            <circle cx="50" cy="50" r="42" fill="#164e63"/>
+            <path d="M 30 35 Q 50 20 70 35 Q 75 60 50 70 Q 25 60 30 35 Z" fill="#1e1b4b"/>
+          `;
+          break;
+
+        case 'monocit':
+          content = `
+            <circle cx="50" cy="50" r="42" fill="#0891b2" opacity="0.4"/>
+            <!-- Nucli Reniforme (Forma de Ronyó) -->
+            <path d="M 32 30 C 55 20, 75 35, 70 60 C 65 75, 40 75, 35 60 C 30 45, 45 40, 32 30 Z" fill="#311b92"/>
+            <!-- Vacuoles -->
+            <circle cx="62" cy="32" r="3" fill="#ecfeff" opacity="0.6"/>
+            <circle cx="28" cy="62" r="2.5" fill="#ecfeff" opacity="0.6"/>
+          `;
+          break;
+
+        case 'macrofag':
+          content = `
+            <!-- Ameba / Irregular -->
+            <path d="M 25 25 Q 50 10 80 20 Q 95 50 80 80 Q 40 95 15 70 Q 5 45 25 25 Z" fill="#0e7490" opacity="0.5"/>
+            <circle cx="45" cy="45" r="16" fill="#311b92"/>
+            <!-- Detritus fagocitats -->
+            <circle cx="70" cy="40" r="5" fill="#e11d48"/>
+            <circle cx="30" cy="70" r="4" fill="#020617"/>
+            <circle cx="65" cy="70" r="6" fill="#f59e0b"/>
+          `;
+          break;
+
+        case 'limfoblast':
+          content = `
+            <circle cx="50" cy="50" r="38" fill="#4c1d95"/>
+            <circle cx="50" cy="50" r="32" fill="#1e1b4b"/>
+          `;
+          break;
+
+        case 'limfocit_b':
+        case 'limfocit_t':
+          content = `
+            <circle cx="50" cy="50" r="36" fill="#38bdf8"/>
+            <!-- Nucli dens que ocupa quasi tota la cèl·lula -->
+            <circle cx="50" cy="50" r="30" fill="#2e1065"/>
+          `;
+          break;
+
+        case 'limfocit_nk':
+          content = `
+            <circle cx="50" cy="50" r="40" fill="#0284c7" opacity="0.5"/>
+            <circle cx="45" cy="50" r="26" fill="#2e1065"/>
+            <!-- Grànuls azuròfils -->
+            <circle cx="72" cy="45" r="2.5" fill="#e11d48"/>
+            <circle cx="70" cy="58" r="2" fill="#e11d48"/>
+            <circle cx="65" cy="35" r="2" fill="#e11d48"/>
+          `;
+          break;
+
+        default:
+          content = `<circle cx="50" cy="50" r="35" fill="#64748b"/>`;
+      }
+
+      return `<svg width="${size}" height="${size}" viewBox="${viewBox}" class="w-full h-full">${content}</svg>`;
+    }
+
+    /* ==========================================================================
+       3. ESTRUCTURA DE L'ARBRE HEMATOPOÈTIC (HIERARCHY GRID)
+       ========================================================================== */
+    const TREE_STRUCTURE = [
+      // NIVELL 0: HSC
+      { level: 0, title: "Cèl·lula Mare Pluripotencial", nodes: ["hsc"] },
+      
+      // NIVELL 1: PROGENIDORS COMUNS
+      { level: 1, title: "Progenidors Principals (Commitment)", nodes: ["cmp", "clp"] },
+      
+      // NIVELL 2: PRECURSORS INICIALS / BLASTS
+      { level: 2, title: "Precursors Blast", nodes: ["proeritroblast", "megacarioblast", "mieloblast", "monoblast", "limfoblast"] },
+      
+      // NIVELL 3: PRECURSORS INTERMEDIS
+      { level: 3, title: "Estadis Intermedis de Maduració", nodes: ["eritroblast_basofil", "promegacariocit", "promielocit", "promonocit"] },
+
+      // NIVELL 4: PRECURSORS AVANÇATS
+      { level: 4, title: "Precursors Tardans / Pre-Madurs", nodes: ["eritroblast_ortocromatofil", "reticulocit", "megacariocit", "metamielocit", "banda"] },
+
+      // NIVELL 5: CÈL·LULES MATURES EN SANG PERIFÈRICA
+      { level: 5, title: "Cèl·lules Sanguínies Matures Circulants", nodes: ["eritrocit", "plaqueta", "neutrofil", "eosinofil", "basofil", "monocit", "macrofag", "limfocit_b", "limfocit_t", "limfocit_nk"] }
+    ];
+
+    function renderHematopoiesisTree(filter = 'all') {
+      const container = document.getElementById('tree-container');
+      container.innerHTML = '';
+
+      TREE_STRUCTURE.forEach(lvl => {
+        // Filtrem els nodes si cal
+        const filteredNodes = lvl.nodes.filter(id => {
+          if (filter === 'all') return true;
+          const cell = CELL_DATABASE[id];
+          if (!cell) return false;
+          if (id === 'hsc' || id === 'cmp' || id === 'clp') return true;
+          return cell.lineageGroup === filter;
+        });
+
+        if (filteredNodes.length === 0) return;
+
+        const levelDiv = document.createElement('div');
+        levelDiv.className = "flex flex-col gap-3";
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = "text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-800 pb-1";
+        titleDiv.innerText = lvl.title;
+        levelDiv.appendChild(titleDiv);
+
+        const nodesGrid = document.createElement('div');
+        nodesGrid.className = "flex flex-wrap items-center justify-center gap-4 sm:gap-6";
+
+        filteredNodes.forEach(id => {
+          const cell = CELL_DATABASE[id];
+          if (!cell) return;
+
+          let borderClass = "border-slate-800";
+          if (cell.lineageGroup === 'eritropoiesi') borderClass = "border-red-900/60 hover:border-red-500";
+          else if (cell.lineageGroup === 'trombopoiesi') borderClass = "border-amber-900/60 hover:border-amber-500";
+          else if (cell.lineageGroup === 'granulocits') borderClass = "border-emerald-900/60 hover:border-emerald-500";
+          else if (cell.lineageGroup === 'agranulocits') borderClass = "border-cyan-900/60 hover:border-cyan-500";
+          else if (cell.lineageGroup === 'limfoide') borderClass = "border-indigo-900/60 hover:border-indigo-500";
+
+          const card = document.createElement('div');
+          card.className = `glass-card p-3 rounded-2xl border ${borderClass} cursor-pointer flex flex-col items-center text-center w-32 sm:w-36 transition-all duration-200`;
+          card.onclick = () => openInspector(id);
+
+          card.innerHTML = `
+            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-slate-950 p-1 mb-2 flex items-center justify-center shadow-inner">
+              ${renderCellSVG(cell.svgType, 56)}
+            </div>
+            <h4 class="text-xs font-bold text-slate-200 line-clamp-1">${cell.name}</h4>
+            <span class="text-[9px] text-slate-400 mt-0.5">${cell.size}</span>
+          `;
+
+          nodesGrid.appendChild(card);
+        });
+
+        levelDiv.appendChild(nodesGrid);
+        container.appendChild(levelDiv);
+      });
+    }
+
+    function filterLineage(type) {
+      document.querySelectorAll('.lineage-btn').forEach(btn => btn.classList.remove('active', 'bg-slate-800', 'border-slate-700'));
+      renderHematopoiesisTree(type);
+    }
+
+    /* ==========================================================================
+       4. SIMULADOR DE DIFERENCIACIÓ PAS A PAS
+       ========================================================================== */
+    const SIM_PATHS = {
+      eritrocit: ["hsc", "cmp", "proeritroblast", "eritroblast_basofil", "eritroblast_policromatofil", "eritroblast_ortocromatofil", "reticulocit", "eritrocit"],
+      plaqueta: ["hsc", "cmp", "megacarioblast", "promegacariocit", "megacariocit", "plaqueta"],
+      neutrofil: ["hsc", "cmp", "mieloblast", "promielocit", "mielocit", "metamielocit", "banda", "neutrofil"],
+      eosinofil: ["hsc", "cmp", "mieloblast", "promielocit", "mielocit", "eosinofil"],
+      basofil: ["hsc", "cmp", "mieloblast", "promielocit", "mielocit", "basofil"],
+      monocit: ["hsc", "cmp", "monoblast", "promonocit", "monocit", "macrofag"],
+      limfocit_b: ["hsc", "clp", "limfoblast", "limfocit_b"],
+      limfocit_t: ["hsc", "clp", "limfoblast", "limfocit_t"],
+      limfocit_nk: ["hsc", "clp", "limfoblast", "limfocit_nk"]
+    };
+
+    let simCurrentPath = [];
+    let simCurrentIndex = 0;
+    let simAutoplayInterval = null;
+
+    function startDifferentiationSimulation(targetKey) {
+      simCurrentPath = SIM_PATHS[targetKey] || SIM_PATHS.eritrocit;
+      simCurrentIndex = 0;
+      updateSimView();
+    }
+
+    function updateSimView() {
+      const cellId = simCurrentPath[simCurrentIndex];
+      const cell = CELL_DATABASE[cellId];
+      if (!cell) return;
+
+      // Actualitza timeline
+      const timelineEl = document.getElementById('sim-timeline');
+      timelineEl.innerHTML = '';
+      simCurrentPath.forEach((stepId, idx) => {
+        const dot = document.createElement('button');
+        dot.onclick = () => { simCurrentIndex = idx; updateSimView(); };
+        const isActive = idx === simCurrentIndex;
+        dot.className = `w-7 h-7 rounded-full text-xs font-bold transition-all flex items-center justify-center ${isActive ? 'bg-indigo-600 text-white scale-115 ring-4 ring-indigo-950' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`;
+        dot.innerText = idx + 1;
+        timelineEl.appendChild(dot);
+      });
+
+      // SVG
+      document.getElementById('sim-cell-svg-container').innerHTML = renderCellSVG(cell.svgType, 120);
+      document.getElementById('sim-cell-name').innerText = cell.name;
+      document.getElementById('sim-cell-stage').innerText = `Pas ${simCurrentIndex + 1} de ${simCurrentPath.length} • ${cell.lineage}`;
+
+      // Descripció Morfològica
+      document.getElementById('sim-morpho-desc').innerHTML = `
+        <strong class="text-slate-200">Nucli:</strong> ${cell.nucleus}.<br>
+        <strong class="text-slate-200 mt-1 block">Citoplasma:</strong> ${cell.cytoplasm}.
+      `;
+
+      // Citoquines
+      const cytokinesEl = document.getElementById('sim-cytokines-list');
+      cytokinesEl.innerHTML = '';
+      cell.cytokines.forEach(cyt => {
+        const span = document.createElement('span');
+        span.className = "text-xs px-2.5 py-1 rounded-lg bg-amber-950/60 text-amber-300 border border-amber-800/50 font-medium";
+        span.innerText = cyt;
+        cytokinesEl.appendChild(span);
+      });
+
+      document.getElementById('sim-time-desc').innerText = `Temps estimat a l'estadi: ${cell.lifespan}`;
+    }
+
+    function simNextStep() {
+      if (simCurrentIndex < simCurrentPath.length - 1) {
+        simCurrentIndex++;
+        updateSimView();
+      }
+    }
+
+    function simPrevStep() {
+      if (simCurrentIndex > 0) {
+        simCurrentIndex--;
+        updateSimView();
+      }
+    }
+
+    function simToggleAutoplay() {
+      const btn = document.getElementById('sim-play-btn');
+      if (simAutoplayInterval) {
+        clearInterval(simAutoplayInterval);
+        simAutoplayInterval = null;
+        btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i> Reprodueix`;
+        lucide.createIcons();
+      } else {
+        btn.innerHTML = `<i data-lucide="pause" class="w-4 h-4"></i> Pausa`;
+        lucide.createIcons();
+        simAutoplayInterval = setInterval(() => {
+          if (simCurrentIndex < simCurrentPath.length - 1) {
+            simCurrentIndex++;
+          } else {
+            simCurrentIndex = 0;
+          }
+          updateSimView();
+        }, 2200);
+      }
+    }
+
+    /* ==========================================================================
+       5. LABORATORI DE CITOQUINES I SIMULACIÓ DEL FROTIS (CANVAS EN TEMPS REAL)
+       ========================================================================== */
+    let smearCanvas, smearCtx;
+    let smearParticles = [];
+    let diffChart = null;
+
+    function initSmearCanvas() {
+      smearCanvas = document.getElementById('smear-canvas');
+      smearCtx = smearCanvas.getContext('2d');
+      smearCanvas.width = 320;
+      smearCanvas.height = 320;
+
+      // Genera partícules inicials
+      generateSmearParticles();
+      animateSmear();
+    }
+
+    function generateSmearParticles() {
+      const epo = parseInt(document.getElementById('slider-epo').value);
+      const tpo = parseInt(document.getElementById('slider-tpo').value);
+      const gcsf = parseInt(document.getElementById('slider-gcsf').value);
+      const mcsf = parseInt(document.getElementById('slider-mcsf').value);
+      const il5 = parseInt(document.getElementById('slider-il5').value);
+      const il7 = parseInt(document.getElementById('slider-il7').value);
+
+      smearParticles = [];
+
+      // Proporcions basades en citoquines
+      const numRBC = Math.round(40 * (epo / 100));
+      const numPlt = Math.round(25 * (tpo / 100));
+      const numNeu = Math.round(6 * (gcsf / 100));
+      const numEos = Math.round(2 * (il5 / 100));
+      const numMon = Math.round(2 * (mcsf / 100));
+      const numLym = Math.round(5 * (il7 / 100));
+
+      // Afegir RBCs
+      for (let i = 0; i < numRBC; i++) {
+        smearParticles.push(createParticle('rbc'));
+      }
+      // Afegir Plaquetes
+      for (let i = 0; i < numPlt; i++) {
+        smearParticles.push(createParticle('plt'));
+      }
+      // Neutròfils
+      for (let i = 0; i < numNeu; i++) smearParticles.push(createParticle('neu'));
+      // Eosinòfils
+      for (let i = 0; i < numEos; i++) smearParticles.push(createParticle('eos'));
+      // Monòcits
+      for (let i = 0; i < numMon; i++) smearParticles.push(createParticle('mon'));
+      // Limfòcits
+      for (let i = 0; i < numLym; i++) smearParticles.push(createParticle('lym'));
+
+      updateChartData(numRBC, numPlt, numNeu, numEos, numMon, numLym);
+    }
+
+    function createParticle(type) {
+      return {
+        type: type,
+        x: Math.random() * smearCanvas.width,
+        y: Math.random() * smearCanvas.height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: type === 'rbc' ? 10 : (type === 'plt' ? 3 : 13)
+      };
+    }
+
+    function animateSmear() {
+      smearCtx.clearRect(0, 0, smearCanvas.width, smearCanvas.height);
+
+      // Fons de plasma
+      smearCtx.fillStyle = '#1e1018';
+      smearCtx.fillRect(0, 0, smearCanvas.width, smearCanvas.height);
+
+      smearParticles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Rebost de parets
+        if (p.x < 0 || p.x > smearCanvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > smearCanvas.height) p.vy *= -1;
+
+        // Dibuix de cèl·lules segons tipus
+        smearCtx.beginPath();
+        if (p.type === 'rbc') {
+          smearCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#e11d48';
+          smearCtx.fill();
+          // Pal·lidesa central
+          smearCtx.beginPath();
+          smearCtx.arc(p.x, p.y, p.radius * 0.45, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#fda4af';
+          smearCtx.fill();
+        } else if (p.type === 'plt') {
+          smearCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#c084fc';
+          smearCtx.fill();
+        } else if (p.type === 'neu') {
+          smearCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#fbcfe8';
+          smearCtx.fill();
+          // Nucli multilobulat
+          smearCtx.beginPath();
+          smearCtx.arc(p.x - 3, p.y - 3, 3, 0, Math.PI * 2);
+          smearCtx.arc(p.x + 3, p.y + 3, 3, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#311b92';
+          smearCtx.fill();
+        } else if (p.type === 'eos') {
+          smearCtx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#ea580c';
+          smearCtx.fill();
+        } else if (p.type === 'mon') {
+          smearCtx.arc(p.x, p.y, p.radius + 2, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#06b6d4';
+          smearCtx.fill();
+        } else if (p.type === 'lym') {
+          smearCtx.arc(p.x, p.y, p.radius - 2, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#38bdf8';
+          smearCtx.fill();
+          smearCtx.beginPath();
+          smearCtx.arc(p.x, p.y, p.radius - 4, 0, Math.PI * 2);
+          smearCtx.fillStyle = '#2e1065';
+          smearCtx.fill();
+        }
+      });
+
+      requestAnimationFrame(animateSmear);
+    }
+
+    function updateLabSimulation() {
+      document.getElementById('val-epo').innerText = document.getElementById('slider-epo').value + '%';
+      document.getElementById('val-tpo').innerText = document.getElementById('slider-tpo').value + '%';
+      document.getElementById('val-gcsf').innerText = document.getElementById('slider-gcsf').value + '%';
+      document.getElementById('val-mcsf').innerText = document.getElementById('slider-mcsf').value + '%';
+      document.getElementById('val-il5').innerText = document.getElementById('slider-il5').value + '%';
+      document.getElementById('val-il7').innerText = document.getElementById('slider-il7').value + '%';
+
+      generateSmearParticles();
+    }
+
+    function applyLabPreset(type) {
+      if (type === 'normal') {
+        document.getElementById('slider-epo').value = 100;
+        document.getElementById('slider-tpo').value = 100;
+        document.getElementById('slider-gcsf').value = 100;
+        document.getElementById('slider-mcsf').value = 100;
+        document.getElementById('slider-il5').value = 100;
+        document.getElementById('slider-il7').value = 100;
+      } else if (type === 'anemia') {
+        document.getElementById('slider-epo').value = 450;
+        document.getElementById('slider-tpo').value = 100;
+        document.getElementById('slider-gcsf').value = 80;
+        document.getElementById('slider-mcsf').value = 80;
+        document.getElementById('slider-il5').value = 50;
+        document.getElementById('slider-il7').value = 50;
+      } else if (type === 'infeccio') {
+        document.getElementById('slider-epo').value = 100;
+        document.getElementById('slider-tpo').value = 150;
+        document.getElementById('slider-gcsf').value = 480;
+        document.getElementById('slider-mcsf').value = 200;
+        document.getElementById('slider-il5').value = 50;
+        document.getElementById('slider-il7').value = 80;
+      } else if (type === 'alergia') {
+        document.getElementById('slider-epo').value = 100;
+        document.getElementById('slider-tpo').value = 100;
+        document.getElementById('slider-gcsf').value = 100;
+        document.getElementById('slider-mcsf').value = 100;
+        document.getElementById('slider-il5').value = 450;
+        document.getElementById('slider-il7').value = 100;
+      }
+      updateLabSimulation();
+    }
+
+    function initChart() {
+      const ctx = document.getElementById('chart-differential').getContext('2d');
+      diffChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Eritròcits', 'Plaquetes', 'Neutròfils', 'Eosinòfils', 'Monòcits', 'Limfòcits'],
+          datasets: [{
+            data: [60, 20, 10, 2, 3, 5],
+            backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#ea580c', '#06b6d4', '#6366f1'],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          cutout: '65%'
+        }
+      });
+    }
+
+    function updateChartData(rbc, plt, neu, eos, mon, lym) {
+      if (!diffChart) return;
+      diffChart.data.datasets[0].data = [rbc, plt, neu, eos, mon, lym];
+      diffChart.update();
+
+      const totalWBC = neu + eos + mon + lym;
+      document.getElementById('smear-summary').innerHTML = `
+        <div class="flex justify-between"><span>Glòbuls Vermells:</span><strong class="text-red-400">${rbc} cèl·lules</strong></div>
+        <div class="flex justify-between"><span>Plaquetes:</span><strong class="text-amber-400">${plt} frag.</strong></div>
+        <div class="flex justify-between"><span>Total Leucòcits:</span><strong class="text-indigo-400">${totalWBC} cèl·lules</strong></div>
+      `;
+    }
+
+    /* ==========================================================================
+       6. TAULA COMPARATIVA CEL·LULAR (MATRIX)
+       ========================================================================== */
+    function renderMatrixTable() {
+      const tbody = document.getElementById('matrix-tbody');
+      const query = document.getElementById('matrix-search').value.toLowerCase();
+      tbody.innerHTML = '';
+
+      const matureKeys = ["eritrocit", "plaqueta", "neutrofil", "eosinofil", "basofil", "monocit", "macrofag", "limfocit_b", "limfocit_t", "limfocit_nk"];
+
+      matureKeys.forEach(key => {
+        const cell = CELL_DATABASE[key];
+        if (!cell) return;
+
+        if (query && !cell.name.toLowerCase().includes(query) && !cell.function.toLowerCase().includes(query)) {
+          return;
+        }
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-800/40 transition-colors cursor-pointer";
+        tr.onclick = () => openInspector(key);
+
+        tr.innerHTML = `
+          <td class="p-3 font-bold text-slate-100 flex items-center gap-2">
+            <div class="w-8 h-8 rounded-full bg-slate-950 p-0.5 border border-slate-700">
+              ${renderCellSVG(cell.svgType, 28)}
+            </div>
+            ${cell.name}
+          </td>
+          <td class="p-3">${cell.size}</td>
+          <td class="p-3 text-slate-400 max-w-xs truncate">${cell.nucleus}</td>
+          <td class="p-3 text-slate-400 max-w-xs truncate">${cell.cytoplasm}</td>
+          <td class="p-3">${cell.lifespan}</td>
+          <td class="p-3 font-medium text-emerald-400">${cell.refRange}</td>
+          <td class="p-3 text-slate-300 max-w-xs leading-tight">${cell.function}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ==========================================================================
+       7. INSPECTOR LATERAL DE DETALLS (DRAWER)
+       ========================================================================== */
+    function openInspector(cellId) {
+      const cell = CELL_DATABASE[cellId];
+      if (!cell) return;
+
+      document.getElementById('inspector-svg').innerHTML = renderCellSVG(cell.svgType, 72);
+      document.getElementById('inspector-title').innerText = cell.name;
+      document.getElementById('inspector-lineage-badge').innerText = cell.lineage;
+      document.getElementById('inspector-size').innerText = cell.size;
+      document.getElementById('inspector-lifespan').innerText = cell.lifespan;
+      document.getElementById('inspector-ref-range').innerText = cell.refRange;
+
+      document.getElementById('inspector-nucleus').innerText = cell.nucleus;
+      document.getElementById('inspector-cytoplasm').innerText = cell.cytoplasm;
+      document.getElementById('inspector-function').innerText = cell.function;
+      document.getElementById('inspector-clinical').innerText = cell.clinical;
+
+      const cytContainer = document.getElementById('inspector-cytokines');
+      cytContainer.innerHTML = '';
+      cell.cytokines.forEach(cyt => {
+        const badge = document.createElement('span');
+        badge.className = "text-[10px] px-2 py-0.5 rounded-md bg-amber-950 text-amber-300 border border-amber-800/60 font-semibold";
+        badge.innerText = cyt;
+        cytContainer.appendChild(badge);
+      });
+
+      document.getElementById('inspector-drawer').classList.remove('translate-x-full');
+    }
+
+    function closeInspector() {
+      document.getElementById('inspector-drawer').classList.add('translate-x-full');
+    }
+
+    /* ==========================================================================
+       8. NAVEGACIÓ ENTRE PESTANYES I MODALS
+       ========================================================================== */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-section').forEach(sec => sec.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-indigo-400', 'bg-indigo-950/60', 'border', 'border-indigo-800/50');
+        btn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`section-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.classList.add('text-indigo-400', 'bg-indigo-950/60', 'border', 'border-indigo-800/50');
+        activeBtn.classList.remove('text-slate-400');
+      }
+
+      if (tabId === 'lab') {
+        setTimeout(() => {
+          if (!smearCanvas) initSmearCanvas();
+          if (!diffChart) initChart();
+        }, 100);
+      }
+    }
+
+    function openPublishModal() {
+      document.getElementById('publish-modal').classList.remove('hidden');
+    }
+
+    function closePublishModal() {
+      document.getElementById('publish-modal').classList.add('hidden');
+    }
+
+    /* ==========================================================================
+       INICIALITZACIÓ
+       ========================================================================== */
+    window.onload = function() {
+      lucide.createIcons();
+      renderHematopoiesisTree('all');
+      startDifferentiationSimulation('eritrocit');
+      renderMatrixTable();
+    };
+  </script>
+</body>
+</html>
